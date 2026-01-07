@@ -1,218 +1,61 @@
 <!DOCTYPE html>
 <html lang="zh">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>作品集</title>
-  <style>
-    body {
-      margin: 0;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #ffffff;
-      color: #111;
-    }
-
-    header {
-      padding: 24px 32px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-bottom: 1px solid #eee;
-    }
-
-    h1 {
-      font-size: 18px;
-      font-weight: 500;
-      margin: 0;
-    }
-
-    nav button {
-      background: none;
-      border: none;
-      font-size: 14px;
-      margin-left: 16px;
-      cursor: pointer;
-      color: #666;
-    }
-
-    nav button.active {
-      color: #000;
-      font-weight: 500;
-    }
-
-    main {
-      padding: 32px;
-    }
-
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-      gap: 24px;
-    }
-
-    .card img {
-      width: 100%;
-      height: 360px;
-      object-fit: cover;
-      border-radius: 4px;
-    }
-
-    .info {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-top: 8px;
-      font-size: 13px;
-      color: #555;
-    }
-
-    .like {
-      cursor: pointer;
-      user-select: none;
-    }
-
-    footer {
-      padding: 32px;
-      text-align: center;
-      font-size: 12px;
-      color: #aaa;
-    }
-  </style>
+  <meta charset="UTF-8">
+  <title>My Photo Portfolio</title>
 </head>
+
 <body>
 
-<header>
-  <h1>我的摄影作品</h1>
-  <nav>
-    <button class="active" data-filter="all">全部</button>
-    <button data-filter="nature">自然</button>
-    <button data-filter="human">人文</button>
-    <button data-filter="popular">热门</button>
-  </nav>
-</header>
+  <h1>My Portfolio</h1>
 
-<main>
-  <section class="grid" id="gallery"></section>
-</main>
+  <input type="file" id="fileInput">
+  <button onclick="uploadPhoto()">Upload</button>
 
-<footer>
-  © 2026 Portfolio
-</footer>
+  <div id="gallery"></div>
 
-<script>
-  const works = [
-    { id: '1', title: '山雾', category: 'nature', src: 'https://images.unsplash.com/photo-1501785888041-af3ef285b470' },
-    { id: '2', title: '街头', category: 'human', src: 'https://images.unsplash.com/photo-1494526585095-c41746248156' },
-    { id: '3', title: '森林', category: 'nature', src: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee' },
-    { id: '4', title: '人群', category: 'human', src: 'https://images.unsplash.com/photo-1492724441997-5dc865305da7' }
-  ];
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
-  const gallery = document.getElementById('gallery');
-  const buttons = document.querySelectorAll('nav button');
+  <script>
+    const supabaseUrl = 'https://zpvamxwkaucqcmxittyv.supabase.co'
+    const supabaseKey = 'sb_publishable_J2TZdEJokoS6XYrP3CkHrQ_kRsfJoJr'
+    const supabase = window.supabase.createClient(supabaseUrl, supabaseKey)
 
-  function getLikes(id) {
-    return Number(localStorage.getItem('likes_' + id) || 0);
-  }
+    async function uploadPhoto() {
+      const file = document.getElementById('fileInput').files[0]
+      if (!file) {
+        alert('请选择照片')
+        return
+      }
 
-  function like(id) {
-    localStorage.setItem('likes_' + id, getLikes(id) + 1);
-    render(currentFilter);
-  }
+      const fileName = Date.now() + '-' + file.name
+      const { error } = await supabase.storage
+        .from('photos')
+        .upload(fileName, file)
 
-  function render(filter = 'all') {
-    gallery.innerHTML = '';
-    let list = [...works];
-
-    if (filter === 'nature' || filter === 'human') {
-      list = list.filter(w => w.category === filter);
+      if (error) {
+        alert('上传失败')
+      } else {
+        loadPhotos()
+      }
     }
 
-    if (filter === 'popular') {
-      list.sort((a, b) => getLikes(b.id) - getLikes(a.id));
+    async function loadPhotos() {
+      const { data } = await supabase.storage.from('photos').list()
+      const gallery = document.getElementById('gallery')
+      gallery.innerHTML = ''
+
+      data.forEach(file => {
+        const img = document.createElement('img')
+        img.src = supabase.storage
+          .from('photos')
+          .getPublicUrl(file.name).data.publicUrl
+        gallery.appendChild(img)
+      })
     }
 
-    list.forEach(w => {
-      const div = document.createElement('div');
-      div.className = 'card';
-      div.innerHTML = `
-        <img src="${w.src}" alt="${w.title}" />
-        <div class="info">
-          <span>${w.title}</span>
-          <span class="like" onclick="like('${w.id}')">❤️ ${getLikes(w.id)}</span>
-        </div>
-      `;
-      gallery.appendChild(div);
-    });
-  }
-
-  let currentFilter = 'all';
-  buttons.forEach(btn => {
-    btn.onclick = () => {
-      buttons.forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      currentFilter = btn.dataset.filter;
-      render(currentFilter);
-    };
-  });
-
-  render();
-</script>
-  <!-- 上传区域 -->
-<h2>Upload Photo</h2>
-<input type="file" id="fileInput" />
-<button onclick="uploadPhoto()">Upload</button>
-
-<div id="gallery"></div>
-
-<!-- Supabase -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-</script>
-<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-
-<script>
-const supabaseUrl = 'https://zpvamxwkaucqcmxittyv.supabase.co'
-const supabaseKey = 'sb_publishable_J2TZdEJokoS6XYrP3CkHrQ_kRsfJoJr'
-
-const supabase = supabase.createClient(supabaseUrl, supabaseKey)
-
-async function uploadPhoto() {
-  const file = document.getElementById('fileInput').files[0]
-  if (!file) {
-    alert('请选择照片')
-    return
-  }
-
-  const fileName = Date.now() + '-' + file.name
-  const { error } = await supabase.storage
-    .from('photos')
-    .upload(fileName, file)
-
-  if (error) {
-    alert('上传失败')
-  } else {
     loadPhotos()
-  }
-}
-
-async function loadPhotos() {
-  const { data } = await supabase.storage.from('photos').list()
-  const gallery = document.getElementById('gallery')
-  gallery.innerHTML = ''
-  data.forEach(file => {
-    const img = document.createElement('img')
-    img.src = supabase.storage
-      .from('photos')
-      .getPublicUrl(file.name).data.publicUrl
-    img.style.width = '200px'
-    img.style.margin = '10px'
-    gallery.appendChild(img)
-  })
-}
-
-loadPhotos()
-</script>
-
+  </script>
 
 </body>
 </html>
