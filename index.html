@@ -166,49 +166,51 @@
 
 <!-- Supabase -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+</script>
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
+<script>
 const supabaseUrl = 'https://zpvamxwkaucqcmxittyv.supabase.co'
 const supabaseKey = 'sb_publishable_J2TZdEJokoS6XYrP3CkHrQ_kRsfJoJr'
 
-  const supabase = supabase.createClient(supabaseUrl, supabaseKey)
+const supabase = supabase.createClient(supabaseUrl, supabaseKey)
 
-  async function uploadPhoto() {
-    const file = document.getElementById('fileInput').files[0]
-    if (!file) {
-      alert('请选择照片')
-      return
-    }
+async function uploadPhoto() {
+  const file = document.getElementById('fileInput').files[0]
+  if (!file) {
+    alert('请选择照片')
+    return
+  }
 
-    const fileName = Date.now() + '-' + file.name
+  const fileName = Date.now() + '-' + file.name
+  const { error } = await supabase.storage
+    .from('photos')
+    .upload(fileName, file)
 
-    const { error } = await supabase.storage
+  if (error) {
+    alert('上传失败')
+  } else {
+    loadPhotos()
+  }
+}
+
+async function loadPhotos() {
+  const { data } = await supabase.storage.from('photos').list()
+  const gallery = document.getElementById('gallery')
+  gallery.innerHTML = ''
+  data.forEach(file => {
+    const img = document.createElement('img')
+    img.src = supabase.storage
       .from('photos')
-      .upload(fileName, file)
+      .getPublicUrl(file.name).data.publicUrl
+    img.style.width = '200px'
+    img.style.margin = '10px'
+    gallery.appendChild(img)
+  })
+}
 
-    if (error) {
-      alert('上传失败')
-    } else {
-      loadPhotos()
-    }
-  }
-
-  async function loadPhotos() {
-    const { data } = await supabase.storage.from('photos').list()
-
-    const gallery = document.getElementById('gallery')
-    gallery.innerHTML = ''
-
-    data.forEach(file => {
-      const img = document.createElement('img')
-      img.src = supabase.storage
-        .from('photos')
-        .getPublicUrl(file.name).data.publicUrl
-      img.style.width = '200px'
-      img.style.margin = '10px'
-      gallery.appendChild(img)
-    })
-  }
-
-  loadPhotos()
+loadPhotos()
 </script>
 
 
